@@ -3,6 +3,8 @@ Single Sign On Widget attempts to provide a single widget for all apps and apis 
 
 This page attempts to provide a high level FAQ style description of this widget.
 
+The code will follow the documentation probably in 2nd quarter of 2024? Hard to say. Code is currently incomplete and living in a different github address.
+
 For more detailed information, see [Docs](docs/index.md)
 
 ## Frequently Asked Questions (FAQ)
@@ -203,13 +205,21 @@ The secured content in the body of the html page (as above except for React SPA 
     </our-signon-widget>
 </body>
 ```
-As an alternative, [Lit allows a Web Component to be wrapped inside of a React component with relative ease](https://lit.dev/docs/frameworks/react/). So if it was necessary to secure _**only a part of your React SPA**_ with our Single Sign On Widget, no problem.
+As an alternative, [Lit allows a Web Component to be wrapped inside of a React component with relative ease](https://lit.dev/docs/frameworks/react/). So if it was necessary to secure _**only a part of your React SPA**_ with our Single Sign On Widget, no problem (but code not shown).
 
 ## Which app actually manages the roles for each user?
 
 **Q: Which app actually manages the roles for each user?**
 
-A: The management of user roles depends on your specific implementation. Typically, the app that requires role-based access control manages the roles for its users. The Single Sign-On Widget can help facilitate role-based authentication, but the role management logic may reside in the individual apps.
+A: This is a trick question! Technically, it could be _any_ app, and even the functionality within our currently chosen configuration might include wholesale changes over 2024.
+
+So instead let's answer this question as a current snapshot only. As it initially rolls out, the app that is used to admin roles is the Firebase admin client, itself. Same client that you would use if you were to set up your own Firebase account and configure new and existing projects.
+
+Because roles, in our case, are currently persisted as a Firestore database entry, and the admin client can manipulate Firestore data directly, this is possible. 
+
+If you are raising your eyebrows and scratching you head, you should be. This is non-optimal at best, and highly questionable behavior at worst.
+
+There are many great ways to build an app to manipulate data in a Firestore database. Eventually we would build such an app, or add such functionality to an already existing app. Just maybe not in 2024.
 
 ## What if authorization is identity-based in addition to or instead of role-based?
 
@@ -221,58 +231,106 @@ A: If you require identity-based authorization in addition to or instead of role
 
 **Q: Code examples for standard API controllers and standard record-based security?**
 
-A: Code examples for standard API controllers and record-based security can vary based on your technology stack. It's recommended to consult the documentation and best practices for your chosen framework (e.g., Spring Security, Django, etc.) to implement secure API controllers and record-based security.
+A: TBD
 
 ## Do JWT custom claims have to anticipate the APIs that consume their roles?
 
 **Q: Do JWT custom claims have to anticipate the APIs that consume their roles?**
 
-A: Custom claims in JWTs (JSON Web Tokens) can be designed to anticipate the specific roles or permissions that APIs may consume. However, the exact design depends on your authentication and authorization requirements. It's important to align the claims with the expectations of the consuming APIs.
+A: There is at least one use case where a role descriptor needs to change to match the consuming APIs.
+
+First let's compare this with the normal approach - such as, if you are an Editor then you are granted that role in the system. The database sets a record of `ROLE_EDITOR` and this in turn is passed into the JWT's custom claims. All is normal, in this circumstance.
+
+But if there were two sets of data APIs, then you might have a different approach. Imagine that your app got some of it's data from a `Sales API` back end and other data from `Product API` back end. In this case, you may wish to distinguish between the 2 roles
+
+- `ROLE_SALES_EDITOR`
+- `ROLE_PRODUCT_EDITOR`
+
+It may become necessary to give someone one or both roles, just to allow granular control at the authorization level. The `Sales API` back end would have an edit controller that filters for `ROLE_SALES_EDITOR` and the `Product API` back end would have an edit controller that filters for `ROLE_PRODUCT_EDITOR`
+
+This somewhat contrived example provides a glimpse into how role naming can be used as a traffic cop to secure back ends in a granular manner.
 
 ## What does the app have to do to consume the widget?
 
 **Q: What does the app have to do to consume the widget?**
 
-A: To consume the Single Sign-On Widget, the app needs to integrate the widget's components or libraries. This integration may involve configuring the widget with the required settings and handling authentication and authorization flows. The specific steps will vary depending on the technology stack and implementation.
+A: See code example above, [here](#what-if-apps-are-thymeleaf-or-plain-html-instead-of-react)
 
 ## What does the API have to do to consume the JWT?
 
 **Q: What does the API have to do to consume the JWT?**
 
-A: APIs that consume JWTs need to implement authentication and authorization logic to validate and process the tokens. This typically involves verifying the token's signature, decoding its claims, and checking for required roles or permissions. The implementation details may vary based on the chosen framework and language.
+A: Every major language ecosystem - java, python, nodeJS, etc
+will have one more libraries to chose from, to execute this task. 
+
+### For example - in Spring Security
+
+**spring-security-oauth2-resource-server:** This library is specifically designed for setting up a resource server in an OAuth2 environment. It provides the necessary mechanisms to validate JWTs when used as access tokens.
+
+**spring-security-oauth2-jose:** This library provides support for using JOSE (JavaScript Object Signing and Encryption) in Spring Security. It includes the functionality for handling JWTs, including decoding, verifying, and validating them.
+
+When a JWT is sent to a Spring Boot application, typically in the Authorization header as a Bearer token, the application uses these libraries to decode and validate the token. The validation process includes checking the signature of the token to ensure it's not tampered with, verifying the issuer, audience, and other claims, and ensuring it's not expired.
+
+To enable JWT support in Spring Security, you would generally configure a `JwtDecoder` bean, which is responsible for decoding and validating JWTs. This configuration typically involves specifying the issuer URI and other relevant parameters necessary for token validation.
+
+### Other systems:
+
+Consult your favorite documentation source.
 
 ## Can this be easily extended to apps and APIs not mentioned herein?
 
 **Q: Can this be easily extended to apps and APIs not mentioned herein?**
 
-A: The extensibility of this architecture depends on its design and flexibility. If the architecture is designed with modularity and scalability in mind, it should be possible to extend it to accommodate additional apps and APIs. However, the ease of extension may vary based on the specific implementation.
+A: Our Single Sign On Widget can be extended to any number of apps and their back end APIs, beyond the 6 apps that we currently have it planned for.
 
 ## Can these features be added incrementally instead of all in a big effort?
 
 **Q: Can these features be added incrementally instead of all in a big effort?**
 
-A: Yes, you can add features incrementally to the architecture rather than implementing everything in one big effort. This approach allows for gradual development and testing of new features, making it easier to manage and adapt the architecture over time.
+A: Yes, even now the Single Sign On Widget has been in development since summer of 2023, improving incrementally with many releases.
+
+It is reasonable to guess that incremental improvements will be a normal part of operations throughout 2024 and even 2025.
 
 ## Will this architecture pass stringent modern-day security requirements?
 
 **Q: Will this architecture pass stringent modern-day security requirements?**
 
-A: The security of this architecture depends on its design, implementation, and adherence to best practices. To meet stringent modern-day security requirements, thorough security assessments and testing are essential. It's crucial to follow security standards and continuously monitor and update the architecture to address emerging threats and vulnerabilities.
+A: Because the part of the system that we do internally is relatively simple and standards based, our part of the architecture should pass muster from here on. 
+
+The authentication piece is extremely complex, and we rely on google to keep that up to date. It would seem logical to assume that this is a good bet :)
 
 ## What if I want to use this in my own SSG like Next, Nuxt, 11ty, or Jekyll?
 
 **Q: What if I want to use this in my own SSG like Next, Nuxt, 11ty, or Jekyll?**
 
-A: You can integrate this architecture into your own Static Site Generator (SSG) like Next.js, Nuxt.js, 11ty, or Jekyll. The integration process may involve adapting the widget and authentication logic to work with the specific SSG technology you're using. It's possible to extend the architecture to support SSG applications.
+A: You can integrate this architecture into your own Static Site Generator (SSG) like Next.js, Nuxt.js, 11ty, or Jekyll. 
+
+Because it is so simple to consume as HTML, it should always be agnostic to whatever system consumes it. Again, see [here above] for a code example.(#what-if-apps-are-thymeleaf-or-plain-html-instead-of-react)
 
 ## I'm confusing Authentication Providers with Sign-Ons Like Google/Facebook/Github
 
 **Q: I'm confusing Authentication Providers with Sign-Ons Like Google/Facebook/Github**
 
-A: Authentication providers and sign-ons like Google, Facebook, and Github can be related but serve different purposes. Authentication providers handle the verification of user identities, while sign-ons often provide convenient methods for users to authenticate using their existing accounts with popular services. You can use authentication providers in conjunction with sign-ons to enhance user authentication and authorization.
+A: You have probably now seen dozens of sites/apps on the web offering to allow you to log in with 
+
+- google login
+- facebook login
+- twitter login
+- github login
+- phone
+- email & password
+- other
+
+What is confusing here is that the authentication vendo is not the login/registration provider, but rather your [authentication vendor](#what-if-we-want-to-change-authentication-providers-such-as-from-firebase-to-okta) may allow any of several login/registration providers.
 
 ## How are bootcamp students harmed by tightly coupled security app/API combos?
 
 **Q: How are bootcamp students harmed by tightly coupled security app/API combos?**
 
-A: Tightly coupled security app/API combinations can pose challenges for bootcamp students as they may limit flexibility and make it more difficult to understand and modify security-related code. Students benefit from modular and well-documented security architectures that allow them to focus on learning specific concepts without unnecessary complexity.
+A: Tightly coupled security app/API combinations can make you seem dumbfounded when you interview for a job, because you remember how tangled up all the code was, and how little of it you really understood when you were trying to code it.
+
+It is very unlikely that you will be asked to write this kind of code in an enterprise role because this code is being increasingly farmed out to specialists. What _IS_ likely is that your prospective employer will at least want you to understand the high level abstractions of security so that you can deal with them on the enterprise teams.
+
+Being able to quickly assemble vendor based offerings is like gold, if compared to sitting in a corner and banging out spagetti code for outdated, tightly coupled, in-house security systems.
+
+
